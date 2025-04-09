@@ -94,7 +94,7 @@ const getUserById = async (req, res) => {
         const { id } = req.params;
 
         const [result] = await db.execute(
-            "SELECT user_id, username, email, avatar FROM users WHERE user_id = ?",
+            "SELECT * FROM users WHERE user_id = ?",
             [id]
         );
 
@@ -123,7 +123,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, email, password } = req.body;
+        const { username, email, password,phone_number,address } = req.body;
         const avatar = req.file ? `/assets/image_avatars/${req.file.filename}` : null;
 
         const [check] = await db.execute(
@@ -163,6 +163,14 @@ const updateUser = async (req, res) => {
             updateFields.push("email = ?");
             values.push(email);
         }
+        if (phone_number) {
+            updateFields.push("phone_number = ?");
+            values.push(phone_number);
+        }
+        if (address) {
+            updateFields.push("address = ?");
+            values.push(address);
+        }
         if (password) {
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -191,10 +199,7 @@ const updateUser = async (req, res) => {
             status: 200,
             message: "Cập nhật người dùng thành công",
             data: {
-                user_id: id,
-                username: username || check[0].username,
-                email: email || check[0].email,
-                avatar: avatar || check[0].avatar
+                result
             }
         });
     } catch (error) {
