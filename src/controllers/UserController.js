@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 // Đăng ký người dùng
@@ -43,13 +44,14 @@ const registerUser = async (req, res) => {
     }
 };
 
+
 const loginUser = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { email, password } = req.body;
 
         const [user] = await db.execute(
-            "SELECT * FROM users WHERE username = ?",
-            [username]
+            "SELECT * FROM users WHERE email = ?",
+            [email]
         );
         if (user.length === 0) {
             return res.status(400).json({
@@ -68,17 +70,28 @@ const loginUser = async (req, res) => {
             });
         }
 
+        const payload = {
+            user_id: user[0].user_id,
+            username: user[0].username,
+            email: user[0].email,
+            isAdmin: user[0].isAdmin
+        };
+        console.log(payload);
+        const token = jwt.sign(payload, process.env.SECRETKEY, { expiresIn: '1h' });
+
         const data = {
             user_id: user[0].user_id,
             username: user[0].username,
             email: user[0].email,
-            avatar: user[0].avatar
+            avatar: user[0].avatar,
+            isAdmin: user[0].isAdmin
         };
 
         res.status(200).json({
             status: 200,
             message: "Đăng nhập thành công",
-            data
+            data,
+            token: token
         });
     } catch (error) {
         res.status(500).json({
@@ -89,13 +102,28 @@ const loginUser = async (req, res) => {
     }
 };
 
+
+
 const getUserById = async (req, res) => {
     try {
-        const { id } = req.params;
+        // Lấy token từ header Authorization
+        const token = req.header('Authorization')?.replace('Bearer ', '');
 
+        if (!token) {
+            return res.status(401).json({
+                status: 401,
+                message: "Không có quyền truy cập",
+                data: null
+            });
+        }
+
+        // Giải mã token để lấy thông tin người dùng
+        const decoded = jwt.verify(token, process.env.SECRETKEY);
+
+        // Dùng user_id từ decoded để truy vấn cơ sở dữ liệu
         const [result] = await db.execute(
             "SELECT * FROM users WHERE user_id = ?",
-            [id]
+            [decoded.user_id]
         );
 
         if (result.length === 0) {
@@ -120,15 +148,29 @@ const getUserById = async (req, res) => {
     }
 };
 
+
+
 const updateUser = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { username, email, password,phone_number,address } = req.body;
+        const token = req.headers.authorization?.split(" ")[1];
+
+        if (!token) {
+            return res.status(401).json({
+                status: 401,
+                message: "Bạn cần phải đăng nhập",
+                data: null
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.SECRETKEY);
+        const { user_id } = decoded;
+
+        const { username, email, password, phone_number, address } = req.body;
         const avatar = req.file ? `/assets/image_avatars/${req.file.filename}` : null;
 
         const [check] = await db.execute(
             "SELECT * FROM users WHERE user_id = ?",
-            [id]
+            [user_id]
         );
         if (check.length === 0) {
             return res.status(404).json({
@@ -141,7 +183,7 @@ const updateUser = async (req, res) => {
         if (username || email) {
             const [existingUser] = await db.execute(
                 "SELECT * FROM users WHERE (username = ? OR email = ?) AND user_id != ?",
-                [username || check[0].username, email || check[0].email, id]
+                [username || check[0].username, email || check[0].email, user_id]
             );
             if (existingUser.length > 0) {
                 return res.status(400).json({
@@ -190,17 +232,20 @@ const updateUser = async (req, res) => {
             });
         }
 
-        values.push(id);
+        values.push(user_id);
         const query = `UPDATE users SET ${updateFields.join(", ")} WHERE user_id = ?`;
 
         const [result] = await db.execute(query, values);
 
+        const [updatedUser] = await db.execute(
+            "SELECT user_id, username, email, phone_number, address, avatar FROM users WHERE user_id = ?",
+            [user_id]
+        );
+
         res.status(200).json({
             status: 200,
             message: "Cập nhật người dùng thành công",
-            data: {
-                result
-            }
+            data: updatedUser[0]
         });
     } catch (error) {
         res.status(500).json({
@@ -211,11 +256,11 @@ const updateUser = async (req, res) => {
     }
 };
 
+
 const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Kiểm tra xem người dùng có tồn tại không
         const [check] = await db.execute(
             "SELECT * FROM users WHERE user_id = ?",
             [id]
