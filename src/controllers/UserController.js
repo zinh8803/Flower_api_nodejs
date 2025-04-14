@@ -2,7 +2,6 @@ const db = require("../config/db");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
-// Đăng ký người dùng
 const registerUser = async (req, res) => {
     try {
         const { username, password, email } = req.body;
@@ -76,7 +75,7 @@ const loginUser = async (req, res) => {
             email: user[0].email,
             isAdmin: user[0].isAdmin
         };
-        console.log(payload);
+        // console.log(payload);
         const token = jwt.sign(payload, process.env.SECRETKEY, { expiresIn: '1h' });
 
         const data = {
@@ -166,7 +165,8 @@ const updateUser = async (req, res) => {
         const { user_id } = decoded;
 
         const { username, email, password, phone_number, address } = req.body;
-        const avatar = req.file ? `/assets/image_avatars/${req.file.filename}` : null;
+        const avatar = req.file ? req.file.path : null;
+
 
         const [check] = await db.execute(
             "SELECT * FROM users WHERE user_id = ?",

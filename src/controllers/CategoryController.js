@@ -20,7 +20,7 @@ const getAllCategories = async (req, res) => {
 
 const getCategoryById = async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
 
         const [result] = await db.execute(
             "SELECT * FROM categories WHERE id = ?",
@@ -38,7 +38,7 @@ const getCategoryById = async (req, res) => {
         res.status(200).json({
             status: 200,
             message: "Lấy thông tin danh mục thành công",
-            data: result[0] 
+            data: result[0]
         });
     } catch (error) {
         res.status(500).json({
@@ -52,7 +52,7 @@ const getCategoryById = async (req, res) => {
 const createCategory = async (req, res) => {
     try {
         const { name } = req.body;
-        const image = req.file ? `/assets/image_categories/${req.file.filename}` : null;
+        const image = req.file ? req.file.path : null;
 
         const [result] = await db.execute(
             "INSERT INTO categories (name, image) VALUES (?, ?)",
@@ -138,7 +138,7 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
 
         const [check] = await db.execute("SELECT * FROM categories WHERE id = ?", [id]);
         if (check.length === 0) {

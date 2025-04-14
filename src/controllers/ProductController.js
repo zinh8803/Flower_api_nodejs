@@ -3,12 +3,45 @@ const db = require("../config/db");
 const getAllProducts = async (req, res) => {
     try {
         const [result] = await db.execute(`
-            select * from products 
-        `);
+                select * from products 
+            `);
 
         res.status(200).json({
             status: 200,
             message: "Lấy danh sách sản phẩm thành công",
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: error.message,
+            data: null
+        });
+    }
+};
+
+const getallproductsbycategory = async (req, res) => {
+    try {
+        const { category_id } = req.params;
+
+        const [result] = await db.execute(
+            `
+             select * from products where category_id = ?
+            `,
+            [category_id]
+        );
+
+        if (result.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "Không tìm thấy sản phẩm",
+                data: null
+            });
+        }
+
+        res.status(200).json({
+            status: 200,
+            message: "Lấy thông tin sản phẩm thành công",
             data: result
         });
     } catch (error) {
@@ -56,9 +89,8 @@ const getProductById = async (req, res) => {
 const createProduct = async (req, res) => {
     try {
         const { name, price, description, stock, category_id } = req.body;
-        const image = req.file ? `/assets/image_products/${req.file.filename}` : null;
+        const image = req.file ? req.file.path : null;
 
-        // Kiểm tra xem category_id có tồn tại không
         const [categoryCheck] = await db.execute(
             "SELECT * FROM categories WHERE id = ?",
             [category_id]
@@ -78,12 +110,12 @@ const createProduct = async (req, res) => {
 
         const data = {
             product_id: result.insertId,
-            name: name,
-            image: image,
-            price: price,
-            description: description,
-            stock: stock,
-            category_id: category_id
+            name,
+            image,
+            price,
+            description,
+            stock,
+            category_id
         };
 
         res.status(201).json({
@@ -100,11 +132,13 @@ const createProduct = async (req, res) => {
     }
 };
 
+
 const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, price, description, stock, category_id } = req.body;
-        const image = req.file ? `/assets/image_products/${req.file.filename}` : null;
+        const image = req.file ? req.file.path : null;
+
 
         const [check] = await db.execute(
             "SELECT * FROM products WHERE product_id = ?",
@@ -168,7 +202,7 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        values.push(id); 
+        values.push(id);
         const query = `UPDATE products SET ${updateFields.join(", ")} WHERE product_id = ?`;
 
         const [result] = await db.execute(query, values);
@@ -235,5 +269,6 @@ module.exports = {
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getallproductsbycategory
 };
