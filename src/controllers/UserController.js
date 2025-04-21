@@ -2,6 +2,7 @@ const db = require("../config/db");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+
 const registerUser = async (req, res) => {
     try {
         const { username, password, email } = req.body;
@@ -76,7 +77,7 @@ const loginUser = async (req, res) => {
             isAdmin: user[0].isAdmin
         };
         // console.log(payload);
-        const token = jwt.sign(payload, process.env.SECRETKEY, { expiresIn: '1h' });
+        const token = jwt.sign(payload, process.env.SECRETKEY, { expiresIn: '10h' });
 
         const data = {
             user_id: user[0].user_id,
@@ -116,10 +117,8 @@ const getUserById = async (req, res) => {
             });
         }
 
-        // Giải mã token để lấy thông tin người dùng
         const decoded = jwt.verify(token, process.env.SECRETKEY);
 
-        // Dùng user_id từ decoded để truy vấn cơ sở dữ liệu
         const [result] = await db.execute(
             "SELECT * FROM users WHERE user_id = ?",
             [decoded.user_id]
@@ -180,19 +179,7 @@ const updateUser = async (req, res) => {
             });
         }
 
-        if (username || email) {
-            const [existingUser] = await db.execute(
-                "SELECT * FROM users WHERE (username = ? OR email = ?) AND user_id != ?",
-                [username || check[0].username, email || check[0].email, user_id]
-            );
-            if (existingUser.length > 0) {
-                return res.status(400).json({
-                    status: 400,
-                    message: "Tên người dùng hoặc email đã tồn tại",
-                    data: null
-                });
-            }
-        }
+
 
         const updateFields = [];
         const values = [];
@@ -255,7 +242,56 @@ const updateUser = async (req, res) => {
         });
     }
 };
+const updateAvatar = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(" ")[1];
 
+        if (!token) {
+            return res.status(401).json({
+                status: 401,
+                message: "Bạn cần phải đăng nhập",
+                data: null
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.SECRETKEY);
+        const { user_id } = decoded;
+
+        if (!req.file) {
+            return res.status(400).json({
+                status: 400,
+                message: "Vui lòng chọn ảnh để cập nhật avatar",
+                data: null
+            });
+        }
+
+        const avatar = req.file ? req.file.path : null;
+
+
+
+        await db.execute(
+            "UPDATE users SET avatar = ? WHERE user_id = ?",
+            [avatar, user_id]
+        );
+
+        const [user] = await db.execute(
+            "SELECT user_id, username, email, phone_number, address, avatar FROM users WHERE user_id = ?",
+            [user_id]
+        );
+
+        return res.status(200).json({
+            status: 200,
+            message: "Cập nhật avatar thành công",
+            data: user[0],
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            message: error.message,
+            data: null
+        });
+    }
+};
 
 const deleteUser = async (req, res) => {
     try {
@@ -292,6 +328,16 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const logout = (req, res) => {
+    res.clearCookie('token');
+    res.status(200).json({
+        status: 200,
+        message: "Đăng xuất thành công",
+        data: null
+    });
+};
+
+
 const handleMulterError = (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         return res.status(400).json({
@@ -314,5 +360,7 @@ module.exports = {
     loginUser,
     getUserById,
     updateUser,
-    deleteUser
+    deleteUser,
+    updateAvatar,
+    logout
 };

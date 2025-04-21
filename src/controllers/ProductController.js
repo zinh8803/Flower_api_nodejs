@@ -19,6 +19,44 @@ const getAllProducts = async (req, res) => {
         });
     }
 };
+const searchProductsByName = async (req, res) => {
+    try {
+        const { name } = req.query;
+
+        if (!name || name.trim() === "") {
+            return res.status(400).json({
+                status: 400,
+                message: "Thiếu tên sản phẩm cần tìm",
+                data: null,
+            });
+        }
+
+        const [results] = await db.execute(
+            "SELECT product_id, name, price, image FROM products WHERE name LIKE ?",
+            [`%${name}%`]
+        );
+
+        if (results.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "Không tìm thấy sản phẩm nào",
+                data: [],
+            });
+        }
+
+        res.status(200).json({
+            status: 200,
+            message: "Tìm kiếm sản phẩm thành công",
+            data: results,
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Lỗi server: " + error.message,
+            data: null,
+        });
+    }
+};
 
 const getallproductsbycategory = async (req, res) => {
     try {
@@ -270,5 +308,6 @@ module.exports = {
     createProduct,
     updateProduct,
     deleteProduct,
-    getallproductsbycategory
+    getallproductsbycategory,
+    searchProductsByName
 };

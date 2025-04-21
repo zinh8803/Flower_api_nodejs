@@ -1,5 +1,5 @@
 const db = require("../config/db");
-
+const jwt = require("jsonwebtoken");
 const createOrder = async (req, res) => {
     try {
         const { user_id, products, name, phone_number, address, payment_method } = req.body;
@@ -209,10 +209,21 @@ const cancelOrder = async (req, res) => {
 // Lấy danh sách đơn hàng của người dùng
 const getUserOrders = async (req, res) => {
     try {
-        const user_id = req.params.id;
+        const token = req.headers.authorization?.split(" ")[1];
+
+        if (!token) {
+            return res.status(401).json({
+                status: 401,
+                message: "Bạn cần phải đăng nhập",
+                data: null
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.SECRETKEY);
+        const { user_id } = decoded;
 
         const [orders] = await db.execute(
-            "SELECT order_id, order_date, total_amount, payment_method, name, phone_number, address,status " +
+            "SELECT order_id, order_date, total_amount, payment_method, name, phone_number, address, status " +
             "FROM orders " +
             "WHERE user_id = ?",
             [user_id]
@@ -257,7 +268,20 @@ const getUserOrders = async (req, res) => {
 // Lấy chi tiết một đơn hàng
 const getOrderById = async (req, res) => {
     try {
-        const { id, user_id } = req.params;
+        const { id } = req.params;
+
+
+        const token = req.headers.authorization?.split(" ")[1];
+
+        if (!token) {
+            return res.status(401).json({
+                status: 401,
+                message: "Bạn cần phải đăng nhập",
+                data: null
+            });
+        }
+        const decoded = jwt.verify(token, process.env.SECRETKEY);
+        const { user_id } = decoded;
 
         if (!id) {
             return res.status(400).json({
@@ -266,13 +290,8 @@ const getOrderById = async (req, res) => {
                 data: null,
             });
         }
-        if (!user_id || user_id.trim() === "") {
-            return res.status(400).json({
-                status: 400,
-                message: "Thiếu hoặc không hợp lệ user_id trong URL",
-                data: null,
-            });
-        }
+
+
 
         const [user] = await db.execute(
             "SELECT user_id FROM users WHERE user_id = ?",
@@ -288,9 +307,10 @@ const getOrderById = async (req, res) => {
         }
 
         const [order] = await db.execute(
-            "SELECT o.order_id, o.order_date, o.total_amount, o.payment_method, o.name, o.phone_number, o.address,o.status " +
-            "FROM orders o " +
-            "WHERE o.order_id = ? AND o.user_id = ?",
+            `SELECT o.order_id, o.order_date, o.total_amount, o.payment_method, 
+                    o.name, o.phone_number, o.address, o.status
+             FROM orders o
+             WHERE o.order_id = ? AND o.user_id = ?`,
             [id, user_id]
         );
 
@@ -303,10 +323,11 @@ const getOrderById = async (req, res) => {
         }
 
         const [details] = await db.execute(
-            "SELECT od.order_detail_id, od.product_id, od.quantity, od.subtotal, p.name, p.image " +
-            "FROM order_details od " +
-            "JOIN products p ON od.product_id = p.product_id " +
-            "WHERE od.order_id = ?",
+            `SELECT od.order_detail_id, od.product_id, od.quantity, od.subtotal, p.price,
+                    p.name, p.image
+             FROM order_details od
+             JOIN products p ON od.product_id = p.product_id
+             WHERE od.order_id = ?`,
             [id]
         );
 
@@ -315,19 +336,20 @@ const getOrderById = async (req, res) => {
             details,
         };
 
-        res.status(200).json({
+        return res.status(200).json({
             status: 200,
             message: "Lấy chi tiết đơn hàng thành công",
             data: orderData,
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             status: 500,
             message: error.message,
             data: null,
         });
     }
 };
+
 // Lấy tất cả đơn hàng (cho admin)
 const getAllOrders = async (req, res) => {
     try {
