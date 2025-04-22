@@ -273,47 +273,47 @@ const getOrderById = async (req, res) => {
         const { id } = req.params;
 
 
-        const token = req.headers.authorization?.split(" ")[1];
+        // const token = req.headers.authorization?.split(" ")[1];
 
-        if (!token) {
-            return res.status(401).json({
-                status: 401,
-                message: "Bạn cần phải đăng nhập",
-                data: null
-            });
-        }
-        const decoded = jwt.verify(token, process.env.SECRETKEY);
-        const { user_id } = decoded;
+        // if (!token) {
+        //     return res.status(401).json({
+        //         status: 401,
+        //         message: "Bạn cần phải đăng nhập",
+        //         data: null
+        //     });
+        // }
+        // const decoded = jwt.verify(token, process.env.SECRETKEY);
+        // const { user_id } = decoded;
 
-        if (!id) {
-            return res.status(400).json({
-                status: 400,
-                message: "Thiếu order_id trong URL",
-                data: null,
-            });
-        }
+        // if (!id) {
+        //     return res.status(400).json({
+        //         status: 400,
+        //         message: "Thiếu order_id trong URL",
+        //         data: null,
+        //     });
+        // }
 
 
 
-        const [user] = await db.execute(
-            "SELECT user_id FROM users WHERE user_id = ?",
-            [user_id]
-        );
+        // const [user] = await db.execute(
+        //     "SELECT user_id FROM users WHERE user_id = ?",
+        //     [user_id]
+        // );
 
-        if (user.length === 0) {
-            return res.status(404).json({
-                status: 404,
-                message: "Không tìm thấy user",
-                data: null,
-            });
-        }
+        // if (user.length === 0) {
+        //     return res.status(404).json({
+        //         status: 404,
+        //         message: "Không tìm thấy user",
+        //         data: null,
+        //     });
+        // }
 
         const [order] = await db.execute(
             `SELECT o.order_id, o.order_date, o.total_amount, o.payment_method, 
                     o.name, o.phone_number, o.address, o.status
              FROM orders o
-             WHERE o.order_id = ? AND o.user_id = ?`,
-            [id, user_id]
+             WHERE o.order_id = ?`,
+            [id]
         );
 
         if (order.length === 0) {
