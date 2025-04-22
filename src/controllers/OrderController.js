@@ -358,7 +358,8 @@ const getAllOrders = async (req, res) => {
         const [orders] = await db.execute(
             "SELECT o.order_id, o.user_id, o.order_date, o.total_amount, o.payment_method, o.name, o.phone_number, o.address, o.status, u.username " +
             "FROM orders o " +
-            "JOIN users u ON o.user_id = u.user_id"
+            "JOIN users u ON o.user_id = u.user_id " +
+            "ORDER BY o.order_id DESC"
         );
 
         if (orders.length === 0) {
