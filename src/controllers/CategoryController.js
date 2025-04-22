@@ -82,7 +82,8 @@ const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
         const { name } = req.body;
-        const image = req.file ? `/assets/image_categories/${req.file.filename}` : null;
+        const image = req.file ? req.file.path : null;
+
 
         const [check] = await db.execute("SELECT * FROM categories WHERE id = ?", [id]);
         if (check.length === 0) {

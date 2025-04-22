@@ -225,9 +225,11 @@ const getUserOrders = async (req, res) => {
         const [orders] = await db.execute(
             "SELECT order_id, order_date, total_amount, payment_method, name, phone_number, address, status " +
             "FROM orders " +
-            "WHERE user_id = ?",
+            "WHERE user_id = ? " +
+            "ORDER BY order_id DESC",
             [user_id]
         );
+
 
         if (orders.length === 0) {
             return res.status(404).json({
