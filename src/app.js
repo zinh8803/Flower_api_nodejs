@@ -27,5 +27,6 @@ app.use("/api", categoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", OrderRoutes);
 app.use("/api/vnpay", PaymentRoutes);
+app.use("/api/invoice", require("./routes/InvoiceRoute"));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`));
