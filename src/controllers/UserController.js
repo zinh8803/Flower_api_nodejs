@@ -7,13 +7,13 @@ const registerUser = async (req, res) => {
     try {
         const { username, password, email } = req.body;
         const [existingUser] = await db.execute(
-            "SELECT * FROM users WHERE username = ? OR email = ?",
-            [username, email]
+            "SELECT * FROM users WHERE email = ?",
+            [email]
         );
         if (existingUser.length > 0) {
             return res.status(400).json({
                 status: 400,
-                message: "Tên người dùng hoặc email đã tồn tại",
+                message: "Tên email đã tồn tại",
                 data: null
             });
         }
